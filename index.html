@@ -152,23 +152,39 @@
   .shake{animation:shake .5s ease-in-out infinite}
   @keyframes shake{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(-5px) rotate(-2deg)}75%{transform:translateX(5px) rotate(2deg)}}
 
-  /* ---------- 刮刮乐 ---------- */
-  .scratch-card{
-    position:relative;width:min(88vw,440px);height:min(58vw,290px);
-    border-radius:20px;overflow:hidden;
-    box-shadow:0 22px 60px rgba(0,0,0,.5),inset 0 0 0 2px rgba(255,255,255,.25);
-    background:linear-gradient(150deg,#fff7fb,#ffe3ee);
-    touch-action:none;
+  /* ---------- 祝福揭晓 ---------- */
+  .bless-card{
+    position:relative;width:min(90vw,470px);
+    border-radius:22px;padding:30px 26px 24px;
+    background:linear-gradient(150deg,#fff7fb,#ffe3ee 60%,#ffeccd);
+    box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 0 0 2px rgba(255,255,255,.6);
+    text-align:center;overflow:hidden;
   }
-  .scratch-msg{
-    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:22px;color:#7d2350;
+  .bless-card::before{
+    content:"";position:absolute;top:-90px;right:-90px;width:220px;height:220px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,180,215,.6),transparent 70%);
   }
-  .scratch-msg h3{margin:0 0 10px;font-size:clamp(18px,4.6vw,24px);letter-spacing:1px;color:#c02a68}
-  .scratch-msg p{color:#8a3b60;font-size:clamp(13px,3.5vw,16px);line-height:1.9;margin:5px 0}
-  #scratch{position:absolute;inset:0;cursor:crosshair}
-  .progress-bar{width:min(88vw,440px);height:6px;border-radius:99px;background:rgba(255,255,255,.16);margin-top:16px;overflow:hidden}
-  .progress-bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#ffb6d0,#ffd76e);transition:width .15s}
+  .bless-card::after{
+    content:"";position:absolute;bottom:-70px;left:-70px;width:170px;height:170px;border-radius:50%;
+    background:radial-gradient(circle,rgba(255,215,110,.5),transparent 70%);
+  }
+  .bless-card h3{
+    margin:0 0 18px;font-size:clamp(18px,4.8vw,24px);letter-spacing:1px;
+    color:#c02a68;position:relative;
+  }
+  .bless-line{
+    color:#8a3b60;font-size:clamp(13.5px,3.7vw,16px);line-height:2;margin:14px 0;
+    position:relative;
+    opacity:0;transform:translateY(16px);
+    animation:lineIn .9s cubic-bezier(.2,.9,.3,1) forwards;
+  }
+  @keyframes lineIn{to{opacity:1;transform:translateY(0)}}
+  .bless-card .seal{
+    margin-top:22px;padding-top:16px;border-top:1px dashed rgba(192,42,104,.28);
+    color:#c98bb0;font-size:13px;letter-spacing:3px;position:relative;
+    opacity:0;transform:translateY(16px);
+    animation:lineIn .9s cubic-bezier(.2,.9,.3,1) forwards;
+  }
 
   /* ---------- 结尾定格 ---------- */
   #finale{
@@ -262,19 +278,14 @@
     <div class="lid"><div class="bow"></div></div>
   </div>
   <p id="giftTip">👆 点一下礼物盒</p>
-  <button class="btn" data-go="s4" id="giftNext" style="display:none">打开它 →</button>
+  <button class="btn" data-go="s4" id="giftNext" style="display:none">看看写了什么 →</button>
 </section>
 
-<!-- ========== 4. 刮刮乐 ========== -->
+<!-- ========== 4. 祝福揭晓 ========== -->
 <section class="scene" id="s4">
-  <h2>刮开这层</h2>
-  <p class="dim">用手指或鼠标按住来回刮</p>
-  <div class="scratch-card">
-    <div class="scratch-msg" id="scratchMsg"></div>
-    <canvas id="scratch"></canvas>
-  </div>
-  <div class="progress-bar"><i id="progBar"></i></div>
-  <button class="btn" id="scratchNext" style="display:none">🎉 生日快乐，陈桑</button>
+  <h2>🎁 拆开啦</h2>
+  <div class="bless-card" id="blessCard"></div>
+  <button class="btn" id="blessNext" style="display:none">🎉 生日快乐，陈桑</button>
 </section>
 
 <!-- ========== 5. 结尾定格 ========== -->
@@ -294,8 +305,8 @@
 const CONFIG = {
   name: '陈桑',                       // 她的名字/昵称
   date: '11.7',                       // 生日日期
-  // 刮刮乐刮开后露出的祝福（想加几行就加几行）
-  scratchLines: [
+  // 拆开礼物后逐条浮现的祝福（想加几行就加几行）
+  blessingLines: [
     '愿你今年所有的愿望，都像今天的蜡烛一样，被一口气全部实现。',
     '愿你被生活温柔对待，也被我偷偷偏爱。',
     '愿你的每一天都不被辜负 —— 尤其是今天。'
@@ -449,7 +460,7 @@ function go(id){
   document.querySelectorAll('.scene').forEach(s => s.classList.toggle('active', s.id === id));
   const i = SCENES.indexOf(id);
   document.querySelectorAll('.dot').forEach((d, k) => d.classList.toggle('on', k === i));
-  if (id === 's4') initScratch();
+  if (id === 's4') revealBlessing();
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-go]');
@@ -558,128 +569,34 @@ gift.addEventListener('click', () => {
   const r = gift.getBoundingClientRect();
   burst(r.left + r.width/2, r.top + r.height*.35, 110);
   confetti(80);
-  document.getElementById('giftTip').innerHTML = '是一份「要自己刮开」的祝福 🎁';
+  document.getElementById('giftTip').innerHTML = '是一份写给你的祝福 🎁';
   setTimeout(() => { document.getElementById('giftNext').style.display = ''; }, 900);
 });
 
 /* =========================================================
-   ⑦  刮刮乐
+   ⑦  祝福揭晓（拆开礼物后逐条浮现）
    ========================================================= */
-const sc = document.getElementById('scratch');
-const sctx = sc.getContext('2d');
-let scratchReady = false, scratching = false, revealed = false;
+let blessingShown = false;
+function revealBlessing(){
+  if (blessingShown) return;
+  blessingShown = true;
 
-function initScratch(){
-  if (scratchReady) return;
-  scratchReady = true;
+  const step = 0.6;                       // 每条之间间隔（秒）
+  const lines = CONFIG.blessingLines
+    .map((l, i) => '<p class="bless-line" style="animation-delay:' + ((i + 1) * step).toFixed(2) + 's">' + l + '</p>')
+    .join('');
+  const sealDelay = ((CONFIG.blessingLines.length + 1) * step).toFixed(2);
 
-  // 底下露出的内容
-  const msg = document.getElementById('scratchMsg');
-  msg.innerHTML = '<h3>给 ' + CONFIG.name + ' 的三句话</h3>' +
-                  CONFIG.scratchLines.map(l => '<p>' + l + '</p>').join('') +
-                  '<p class="dim" style="margin-top:14px;color:#c98bb0">—— 生日快乐，' + CONFIG.date + ' ——</p>';
+  document.getElementById('blessCard').innerHTML =
+    '<h3>给 ' + CONFIG.name + ' 的话</h3>' +
+    lines +
+    '<div class="seal" style="animation-delay:' + sealDelay + 's">—— 生日快乐，' + CONFIG.date + ' ——</div>';
 
-  requestAnimationFrame(() => {
-    // 用 clientWidth/Height：不受入场缩放动画的 transform 影响
-    const w = Math.round(sc.parentElement.clientWidth);
-    const h = Math.round(sc.parentElement.clientHeight);
-    sc.width = w * DPR; sc.height = h * DPR;
-    sc.style.width = w + 'px'; sc.style.height = h + 'px';
-    sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    paintCover(w, h);
-  });
-}
-
-function paintCover(w, h){
-  const g = sctx.createLinearGradient(0, 0, w, h);
-  g.addColorStop(0, '#ffb3d1'); g.addColorStop(.45, '#ff8ab5'); g.addColorStop(1, '#ffd08a');
-  sctx.globalCompositeOperation = 'source-over';
-  sctx.fillStyle = g;
-  sctx.fillRect(0, 0, w, h);
-  // 星星点点的装饰
-  sctx.fillStyle = 'rgba(255,255,255,.35)';
-  for (let i = 0; i < 90; i++){
-    sctx.beginPath();
-    sctx.arc(Math.random()*w, Math.random()*h, Math.random()*2.4, 0, Math.PI*2);
-    sctx.fill();
-  }
-  sctx.fillStyle = 'rgba(140,20,70,.75)';
-  sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
-  sctx.font = '700 ' + Math.round(w*.075) + 'px "PingFang SC","Microsoft YaHei",sans-serif';
-  sctx.fillText('刮开我 ✨', w/2, h/2 - w*.03);
-  sctx.font = '400 ' + Math.round(w*.036) + 'px "PingFang SC","Microsoft YaHei",sans-serif';
-  sctx.fillStyle = 'rgba(140,20,70,.6)';
-  sctx.fillText('按住来回涂抹', w/2, h/2 + w*.06);
-}
-
-function scratchAt(x, y){
-  sctx.globalCompositeOperation = 'destination-out';
-  sctx.beginPath();
-  sctx.arc(x, y, 26, 0, Math.PI*2);
-  sctx.fill();
-}
-
-function getPos(e){
-  const r = sc.getBoundingClientRect();
-  const p = e.touches ? e.touches[0] : e;
-  return { x: p.clientX - r.left, y: p.clientY - r.top };
-}
-function onDown(e){
-  if (revealed) return;
-  scratching = true;
-  const { x, y } = getPos(e);
-  scratchAt(x, y);
-}
-function onMove(e){
-  if (!scratching || revealed) return;
-  e.preventDefault();
-  const { x, y } = getPos(e);
-  scratchAt(x, y);
-  // 连线，避免快速滑动出现断点
-  if (onMove.px != null){
-    const steps = Math.hypot(x - onMove.px, y - onMove.py) / 12 | 0;
-    for (let i = 1; i < steps; i++){
-      scratchAt(onMove.px + (x - onMove.px)*i/steps, onMove.py + (y - onMove.py)*i/steps);
-    }
-  }
-  onMove.px = x; onMove.py = y;
-  checkProgress();
-}
-function onUp(){ scratching = false; onMove.px = onMove.py = null; checkProgress(); }
-
-sc.addEventListener('mousedown', onDown);
-window.addEventListener('mousemove', onMove);
-window.addEventListener('mouseup', onUp);
-sc.addEventListener('touchstart', onDown, { passive: true });
-sc.addEventListener('touchmove', onMove, { passive: false });
-window.addEventListener('touchend', onUp);
-
-let lastCheck = 0;
-function checkProgress(){
-  const now = performance.now();
-  if (now - lastCheck < 120) return;
-  lastCheck = now;
-  const w = sc.width, h = sc.height;
-  const data = sctx.getImageData(0, 0, w, h).data;
-  let clear = 0, total = 0;
-  for (let i = 3; i < data.length; i += 4*16){   // 采样
-    total++;
-    if (data[i] < 40) clear++;
-  }
-  const ratio = clear / Math.max(1, total);
-  document.getElementById('progBar').style.width = Math.min(100, ratio/0.55*100) + '%';
-  if (ratio > 0.55) revealAll();
-}
-function revealAll(){
-  if (revealed) return;
-  revealed = true;
-  sctx.globalCompositeOperation = 'destination-out';
-  sctx.fillRect(0, 0, sc.width, sc.height);
-  document.getElementById('progBar').style.width = '100%';
-  heartRain(2600);
-  const r = sc.getBoundingClientRect();
-  heartBurst(r.left + r.width/2, r.top + r.height/2, 40);
-  setTimeout(() => { document.getElementById('scratchNext').style.display = ''; }, 700);
+  // 逐条浮现时飘落爱心
+  const total = (Number(sealDelay) + 0.8) * 1000;
+  heartRain(Math.min(7000, total));
+  setTimeout(() => heartBurst(window.innerWidth / 2, window.innerHeight * 0.62, 24), total - 700);
+  setTimeout(() => { document.getElementById('blessNext').style.display = ''; }, total);
 }
 
 /* =========================================================
@@ -693,7 +610,7 @@ function finale(){
   confetti(180);
   setTimeout(() => heartBurst(window.innerWidth/2, window.innerHeight/2, 50), 900);
 }
-document.getElementById('scratchNext').addEventListener('click', finale);
+document.getElementById('blessNext').addEventListener('click', finale);
 document.getElementById('againBtn').addEventListener('click', () => location.reload());
 
 /* =========================================================
